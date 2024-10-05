@@ -30,13 +30,16 @@ class LightsController:
 
         for i in range(width):
             for j in range(height):
-                if difference[i][j] != ' ':
+                if difference[i][j] != '  ':
                     numLed = i * 20 + j
                     await self.__drawPixelSingle(numLed, difference[i][j])
 
     # Draws completely new frame, each bulb is re-initialized. Uses L2CAP procedures
     def drawFrameComplete(self, frame):
         return
+    
+    async def drawBlankFrame(self):
+        await self.__sendWriteCommand("aad00400646403bb")
         
     # Get the difference between the two matrices, return the new matrix
     def __computeDifference(self, currentFrame, previousFrame):
@@ -53,12 +56,12 @@ class LightsController:
                 previousVal = previousFrame[i][j]
 
                 if currentVal != previousVal:
-                    if currentVal == ' ':
+                    if currentVal == '  ' and previousVal != '  ':
                         newCol.append('FE')
                     else:
                         newCol.append(currentVal)
                 else:
-                    newCol.append(' ')
+                    newCol.append('  ')
             
             difference.append(newCol)
         
@@ -79,5 +82,5 @@ class LightsController:
         # This is the uuid of the device to write to
         characteristic_uuid = CHAR_UUID
 
-        #await self.client.write_gatt_char(characteristic_uuid, bytes.fromhex(hexCode))
+        await self.client.write_gatt_char(characteristic_uuid, bytes.fromhex(hexCode))
         print(f"Command {hexCode} sent successfully")

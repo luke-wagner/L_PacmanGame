@@ -1,7 +1,10 @@
 import copy
 import asyncio
+from pynput import keyboard
+from pynput.keyboard import Key
 
 from LightsController import LightsController
+from sprites import *
 
 class GameObject:
     def __init__(self, _name, _sprite=None, _position=[0,0]):
@@ -10,68 +13,41 @@ class GameObject:
         self.position = _position
         self.zIndex = 0  # Default value
 
-class Sprite:
-    def __init__(self, _width, _height):
-        self.width = _width
-        self.height = _height
-        self.origin = [0,0] # Default, anchor sprite position at top left
-        self.pixelData = [] # Start with an empty list
-
-        for i in range(_width):
-            column = [' '] * _height
-            self.pixelData.append(column)
-
 GAME_WIDTH = 20
 GAME_HEIGHT = 14
 
-lightsController = LightsController()
+drawingFrame = False
 
-backgroundSprite = Sprite(20, 14)
-backgroundSprite.pixelData = [
-    ['2D', '2D', '2D', '2D', '2D', '2D', '2D', '2D', '2D', '2D', '2D', '2D', '2D', '2D'],
-    ['2D', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', '2D'],
-    ['2D', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', '2D'],
-    ['2D', 'FE', 'FE', '2D', '2D', '2D', 'FE', 'FE', '2D', '2D', '2D', 'FE', 'FE', '2D'],
-    ['2D', 'FE', 'FE', '2D', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', '2D', 'FE', 'FE', '2D'],
-    ['2D', 'FE', 'FE', '2D', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', '2D', 'FE', 'FE', '2D'],
-    ['2D', 'FE', 'FE', 'FE', 'FE', 'FE', '2D', '2D', 'FE', 'FE', 'FE', 'FE', 'FE', '2D'],
-    ['2D', 'FE', 'FE', 'FE', 'FE', 'FE', '2D', '2D', 'FE', 'FE', 'FE', 'FE', 'FE', '2D'],
-    ['2D', '2D', '2D', '2D', 'FE', 'FE', '2D', '2D', 'FE', 'FE', '2D', '2D', '2D', '2D'],
-    ['2D', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', '2D'],
-    ['2D', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', '2D'],
-    ['2D', '2D', '2D', '2D', 'FE', 'FE', '2D', '2D', 'FE', 'FE', '2D', '2D', '2D', '2D'],
-    ['2D', 'FE', 'FE', 'FE', 'FE', 'FE', '2D', '2D', 'FE', 'FE', 'FE', 'FE', 'FE', '2D'],
-    ['2D', 'FE', 'FE', 'FE', 'FE', 'FE', '2D', '2D', 'FE', 'FE', 'FE', 'FE', 'FE', '2D'],
-    ['2D', 'FE', 'FE', '2D', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', '2D', 'FE', 'FE', '2D'],
-    ['2D', 'FE', 'FE', '2D', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', '2D', 'FE', 'FE', '2D'],
-    ['2D', 'FE', 'FE', '2D', '2D', '2D', 'FE', 'FE', '2D', '2D', '2D', 'FE', 'FE', '2D'],
-    ['2D', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', '2D'],
-    ['2D', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', 'FE', '2D'],
-    ['2D', '2D', '2D', '2D', '2D', '2D', '2D', '2D', '2D', '2D', '2D', '2D', '2D', '2D']
-]
+lightsController = LightsController()
 
 previousFrame = []
 currentFrame = []
 gameObjects = []
 
 for i in range(GAME_WIDTH):
-    column = [' '] * GAME_HEIGHT
+    column = ['  '] * GAME_HEIGHT
     currentFrame.append(column)
     previousFrame.append(column.copy()) # must use copy to ensure same column is not used for both matrices
 
 backgroundObj = GameObject("background", backgroundSprite)
 gameObjects.append(backgroundObj)
 
+playerObj = GameObject("player", playerSprite, [9,6])
+gameObjects.append(playerObj)
+
 def clearFrame():
     global currentFrame
     
     for i in range(GAME_WIDTH):
         for j in range(GAME_HEIGHT):
-            currentFrame[i][j] = ' '
+            currentFrame[i][j] = '  '
 
 def newFrame():
+    global drawingFrame
     global currentFrame
     global previousFrame
+
+    drawingFrame = True
 
     clearFrame()
 
@@ -86,6 +62,8 @@ def newFrame():
 
     previousFrame = copy.deepcopy(currentFrame)
 
+    drawingFrame = False
+
 def drawGameObject(gameObject):
     if gameObject.sprite == None:
         print("ERROR: Draw function called on object with no sprite")
@@ -94,8 +72,8 @@ def drawGameObject(gameObject):
     for i in range(gameObject.sprite.width):
         for j in range(gameObject.sprite.height):
             # Draw pixel
-            coordX = i + gameObject.position[1] - gameObject.sprite.origin[1]
-            coordY = j + gameObject.position[0] - gameObject.sprite.origin[0]
+            coordX = i + gameObject.position[0] - gameObject.sprite.origin[0]
+            coordY = j + gameObject.position[1] - gameObject.sprite.origin[1]
             ledNumber = coordX * 20 + coordY
             color = gameObject.sprite.pixelData[i][j]
             
@@ -103,11 +81,34 @@ def drawGameObject(gameObject):
                 #print("Coloring (" + str(coordX) + ", " + str(coordY) + "), led number: " + str(ledNumber) + ", with " + color)
                 currentFrame[coordX][coordY] = color
 
-newFrame()
+#asyncio.run(lightsController.drawBlankFrame())
 
-backgroundObj.position = [0,1]
+#newFrame()
 
-newFrame()
+def on_press(key):
+    if drawingFrame:
+        return
 
+    if key == Key.up:
+        playerObj.position[1] -= 1
+        newFrame()
+    elif key == Key.down:
+        playerObj.position[1] += 1
+        newFrame()
+    elif key == Key.right:
+        playerObj.position[0] += 1
+        newFrame()
+    elif key == Key.left:
+        playerObj.position[0] -= 1
+        newFrame()
+
+
+# Create a listener and start listening for key presses
+with keyboard.Listener(on_press=on_press) as listener:
+    listener.join()
+
+while True:
+    continue
+    
 # Disconnect from the lights
 asyncio.run(lightsController.disconnect())
