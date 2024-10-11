@@ -2,23 +2,20 @@ import copy
 import asyncio
 from pynput import keyboard
 from pynput.keyboard import Key
+import random
 
+from GameObject import GameObject
+from PlayerObj import PlayerObj
 from LightsController import LightsController
 from sprites import *
-
-class GameObject:
-    def __init__(self, _name, _sprite=None, _position=[0,0]):
-        self.name = _name
-        self.sprite = _sprite
-        self.position = _position
-        self.zIndex = 0  # Default value
 
 GAME_WIDTH = 20
 GAME_HEIGHT = 14
 
 drawingFrame = False
 
-lightsController = LightsController()
+# Dictionary to track which keys are currently pressed
+keys_held = {}
 
 previousFrame = []
 currentFrame = []
@@ -29,11 +26,45 @@ for i in range(GAME_WIDTH):
     currentFrame.append(column)
     previousFrame.append(column.copy()) # must use copy to ensure same column is not used for both matrices
 
+lightsController = LightsController()
+
 backgroundObj = GameObject("background", backgroundSprite)
 gameObjects.append(backgroundObj)
 
-playerObj = GameObject("player", playerSprite, [9,6])
+playerObj = PlayerObj("player", playerSprite, [9,6])
 gameObjects.append(playerObj)
+
+pellets = [
+    GameObject("pellet", pelletSprite, [1, 3]),
+    GameObject("pellet", pelletSprite, [1, 6]),
+    GameObject("pellet", pelletSprite, [1, 10]),
+    GameObject("pellet", pelletSprite, [4, 1]),
+    GameObject("pellet", pelletSprite, [4, 6]),
+    GameObject("pellet", pelletSprite, [4, 12]),
+    GameObject("pellet", pelletSprite, [9, 11]),
+    GameObject("pellet", pelletSprite, [10, 2]),
+    GameObject("pellet", pelletSprite, [14, 1]),
+    GameObject("pellet", pelletSprite, [14, 12]),
+    GameObject("pellet", pelletSprite, [15, 6]),
+    GameObject("pellet", pelletSprite, [18, 3]),
+    GameObject("pellet", pelletSprite, [18, 6]),
+    GameObject("pellet", pelletSprite, [18, 10])
+]
+
+for pellet in pellets:
+    gameObjects.append(pellet)
+
+enemies = []
+
+enemy1 = GameObject("enemy", enemySprite2, [17, 11])
+enemy2 = GameObject("enemy", enemySprite1, [1, 1])
+
+enemies.append(enemy1)
+enemies.append(enemy2)
+gameObjects.append(enemy1)
+gameObjects.append(enemy2)
+
+gameNotOver = True
 
 def clearFrame():
     global currentFrame
@@ -42,7 +73,7 @@ def clearFrame():
         for j in range(GAME_HEIGHT):
             currentFrame[i][j] = '  '
 
-def newFrame():
+async def newFrame():
     global drawingFrame
     global currentFrame
     global previousFrame
@@ -58,7 +89,7 @@ def newFrame():
     for object in gameObjects:
         drawGameObject(object)
 
-    asyncio.run(lightsController.drawFramePartial(currentFrame, previousFrame))
+    await lightsController.drawFramePartial(currentFrame, previousFrame)
 
     previousFrame = copy.deepcopy(currentFrame)
 
@@ -81,34 +112,97 @@ def drawGameObject(gameObject):
                 #print("Coloring (" + str(coordX) + ", " + str(coordY) + "), led number: " + str(ledNumber) + ", with " + color)
                 currentFrame[coordX][coordY] = color
 
-#asyncio.run(lightsController.drawBlankFrame())
+def playerMovedEvent():
+    global gameNotOver
 
-#newFrame()
+    collisionObj = playerObj.detectCollisions(gameObjects)
+
+    if collisionObj != None:
+        if collisionObj.name == "pellet":
+            gameObjects.remove(collisionObj)
+        elif collisionObj.name == "enemy":
+            gameObjects.remove(playerObj)
+            gameNotOver = False
+
+    newFrame()
+
+def tryMovePlayer():
+    if keys_held.get(Key.up, False):
+        playerObj.position[1] -= 1
+        playerMovedEvent()
+    elif keys_held.get(Key.down, False):
+        playerObj.position[1] += 1
+        playerMovedEvent()
+    elif keys_held.get(Key.right, False):
+        playerObj.position[0] += 1
+        playerMovedEvent()
+    elif keys_held.get(Key.left, False):
+        playerObj.position[0] -= 1
+        playerMovedEvent()
+
+def tryMoveEnemy(enemy, index, value):
+    if index == 0:
+        if enemy.position[index] + value >= 0 and enemy.position[index] + value < GAME_WIDTH:
+            enemy.position[index] += value
+            return True
+        else:
+            return False
+    else:
+        if enemy.position[index] + value >= 0 and enemy.position[index] + value < GAME_HEIGHT:
+            enemy.position[index] += value
+            return True
+        else:
+            return False
+
+def moveEnemies():
+    global enemies
+
+    for enemy in enemies:
+        if random.random() > 0.5:
+            index = 1
+        else:
+            index = 0
+        
+        moved = False
+        while moved == False:
+            if random.random() > 0.5:
+                moved = tryMoveEnemy(enemy, index, 1)
+            else:
+                moved = tryMoveEnemy(enemy, index, -1)
 
 def on_press(key):
-    if drawingFrame:
-        return
+    try:
+        keys_held[key.char] = True
+    except AttributeError:
+        keys_held[key] = True
 
-    if key == Key.up:
-        playerObj.position[1] -= 1
-        newFrame()
-    elif key == Key.down:
-        playerObj.position[1] += 1
-        newFrame()
-    elif key == Key.right:
-        playerObj.position[0] += 1
-        newFrame()
-    elif key == Key.left:
-        playerObj.position[0] -= 1
-        newFrame()
+def on_release(key):
+    try:
+        keys_held[key.char] = False
+    except AttributeError:
+        keys_held[key] = False
 
+async def check_exit_condition():
+    if keys_held.get('q', False):
+        print("Exiting...")
 
-# Create a listener and start listening for key presses
-with keyboard.Listener(on_press=on_press) as listener:
-    listener.join()
+        # Disconnect from the lights
+        await lightsController.disconnect()
 
-while True:
-    continue
-    
-# Disconnect from the lights
-asyncio.run(lightsController.disconnect())
+        quit()
+
+# Start keyboard listener
+listener = keyboard.Listener(on_press=on_press, on_release=on_release)
+listener.start()
+
+async def main():
+    await lightsController.drawBlankFrame()
+    await newFrame()
+
+    while gameNotOver:
+        await check_exit_condition()
+        moveEnemies()
+        tryMovePlayer()
+        await newFrame()
+
+asyncio.run(main())

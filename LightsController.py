@@ -13,6 +13,7 @@ class LightsController:
     async def connect(self):
         try:
             await self.client.connect()
+            print("Connection successful...")
         except:
             print("Unable to connect to lights. Continuing program execution...")
 
@@ -23,7 +24,6 @@ class LightsController:
     # Draws new frame with reference to the old frame, draws each pixel individually
     async def drawFramePartial(self, currentFrame, previousFrame):
         difference = self.__computeDifference(currentFrame, previousFrame)
-        print(difference)
 
         width = len(difference)
         height = len(difference[0])
@@ -83,4 +83,3 @@ class LightsController:
         characteristic_uuid = CHAR_UUID
 
         await self.client.write_gatt_char(characteristic_uuid, bytes.fromhex(hexCode))
-        print(f"Command {hexCode} sent successfully")

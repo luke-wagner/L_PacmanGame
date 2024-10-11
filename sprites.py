@@ -38,3 +38,20 @@ playerSprite.pixelData = [
     ['0B', '0B'],
     ['0B', '0B']
 ]
+
+pelletSprite = Sprite(1, 1)
+pelletSprite.pixelData = [
+    ['FF']
+]
+
+enemySprite1 = Sprite(2, 2)
+enemySprite1.pixelData = [
+    ['55', '55'],
+    ['55', '55']
+]
+
+enemySprite2 = Sprite(2, 2)
+enemySprite2.pixelData = [
+    ['91', '91'],
+    ['91', '91']
+]
