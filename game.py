@@ -126,7 +126,7 @@ def playerMovedEvent():
 
     newFrame()
 
-def tryMovePlayer():
+async def tryMovePlayer():
     if keys_held.get(Key.up, False):
         playerObj.position[1] -= 1
         playerMovedEvent()
@@ -154,7 +154,7 @@ def tryMoveEnemy(enemy, index, value):
         else:
             return False
 
-def moveEnemies():
+async def moveEnemies():
     global enemies
 
     for enemy in enemies:
@@ -200,9 +200,18 @@ async def main():
     await newFrame()
 
     while gameNotOver:
+        start_time = asyncio.get_event_loop().time()  # Get the current time
         await check_exit_condition()
-        moveEnemies()
-        tryMovePlayer()
+        await moveEnemies()
+        await tryMovePlayer()
         await newFrame()
+        
+        # Calculate the time taken for this loop iteration
+        elapsed_time = asyncio.get_event_loop().time() - start_time
+        frame_duration = 1 / 3  # Target duration for 3 frames per second (0.3333 seconds)
+        
+        # Sleep for the remaining time if the loop was faster than the frame duration
+        if elapsed_time < frame_duration:
+            await asyncio.sleep(frame_duration - elapsed_time)
 
 asyncio.run(main())

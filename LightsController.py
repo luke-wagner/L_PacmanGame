@@ -1,5 +1,6 @@
 import asyncio
 from bleak import BleakClient
+import time
 
 from config import *
 
@@ -24,15 +25,25 @@ class LightsController:
     # Draws new frame with reference to the old frame, draws each pixel individually
     async def drawFramePartial(self, currentFrame, previousFrame):
         difference = self.__computeDifference(currentFrame, previousFrame)
+        tasks = []
 
         width = len(difference)
         height = len(difference[0])
+
+        start_time = time.time()
 
         for i in range(width):
             for j in range(height):
                 if difference[i][j] != '  ':
                     numLed = i * 20 + j
-                    await self.__drawPixelSingle(numLed, difference[i][j])
+                    tasks.append(self.__drawPixelSingle(numLed, difference[i][j]))
+
+        await asyncio.gather(*tasks)
+
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"Write time: {elapsed_time:.4f} seconds")
+
 
     # Draws completely new frame, each bulb is re-initialized. Uses L2CAP procedures
     def drawFrameComplete(self, frame):
@@ -82,4 +93,4 @@ class LightsController:
         # This is the uuid of the device to write to
         characteristic_uuid = CHAR_UUID
 
-        await self.client.write_gatt_char(characteristic_uuid, bytes.fromhex(hexCode))
+        await self.client.write_gatt_char(characteristic_uuid, bytes.fromhex(hexCode), response=False)
