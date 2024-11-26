@@ -3,6 +3,7 @@ import asyncio
 from pynput import keyboard
 from pynput.keyboard import Key
 import random
+from collections import deque
 
 from GameObject import GameObject
 from PlayerObj import PlayerObj
@@ -167,6 +168,7 @@ def playerMovedEvent():
     newFrame()
 
 async def tryMovePlayer():
+    print("Moving player...")
     currentPos = playerObj.position
 
     if keys_held.get(Key.up, False) and checkBounds(playerObj, (currentPos[0],currentPos[1] - 1)):
@@ -186,18 +188,55 @@ async def tryMovePlayer():
         playerObj.position[0] -= 1
         playerMovedEvent()
 
-def tryMoveEnemy(enemy, index, value):
-    currentPos = enemy.position
-    if index == 0:
-        testPos = (currentPos[0] + value, currentPos[1])
-    else:
-        testPos = (currentPos[0], currentPos[1] + value)
-    
-    if checkBounds(enemy, testPos):
-        enemy.position[index] += value
+def tryMoveEnemy(enemy):
+    print("moving enemy...")
+
+    if enemy.position == playerObj.position:
         return True
-    else:
-        return False
+
+    def findPath(start, goal, validTiles):
+        """Find the shortest path from start to goal using BFS."""
+        queue = deque([start])
+        came_from = {start: None}  # To reconstruct the path
+        directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]  # Right, Left, Down, Up
+
+        while queue:
+            current = queue.popleft()
+            if current == goal:
+                break
+            
+            for d in directions:
+                neighbor = (current[0] + d[0], current[1] + d[1])
+                if neighbor in validTiles and neighbor not in came_from:
+                    queue.append(neighbor)
+                    came_from[neighbor] = current
+
+        # Reconstruct the path
+        path = []
+        current = goal
+        while current and current != start:
+            path.append(current)
+            current = came_from.get(current)
+        
+        return path[::-1]  # Return the path from start to goal
+
+    currentPos = tuple(enemy.position)  # Ensure it's a tuple
+    playerPos = tuple(playerObj.position)  # Ensure it's a tuple
+    
+    # Convert emptyTiles to a set of tuples
+    validTiles = {tuple(tile) for tile in emptyTiles}
+    
+    # Find the path from the enemy to the player
+    path = findPath(currentPos, playerPos, validTiles)
+    
+    # If there's a path, move the enemy one step closer to the player
+    if path:
+        nextStep = path[0]  # First step in the path
+        if nextStep in validTiles:  # Ensure the step is valid
+            enemy.position = list(nextStep)  # Convert back to a list if needed
+            return True
+    
+    return False  # No valid move found
 
     '''
     if index == 0:
@@ -227,9 +266,9 @@ async def moveEnemies():
                 index = 0
 
             if random.random() > 0.5:
-                moved = tryMoveEnemy(enemy, index, 1)
+                moved = tryMoveEnemy(enemy)
             else:
-                moved = tryMoveEnemy(enemy, index, -1)
+                moved = tryMoveEnemy(enemy)
         
 
 def on_press(key):
@@ -262,22 +301,40 @@ listener = keyboard.Listener(on_press=on_press, on_release=on_release)
 listener.start()
 
 async def main():
-    await lightsController.drawBlankFrame()
-    await newFrame()
+    global gameNotOver
+    global gameObjects
+    global playerObj
 
-    while gameNotOver:
-        start_time = asyncio.get_event_loop().time()  # Get the current time
-        await check_exit_condition()
-        await moveEnemies()
-        await tryMovePlayer()
+    await lightsController.drawBlankFrame()
+
+    while True:
         await newFrame()
-        
-        # Calculate the time taken for this loop iteration
-        elapsed_time = asyncio.get_event_loop().time() - start_time
-        frame_duration = 1 / 2  # Target duration for 3 frames per second (0.3333 seconds)
-        
-        # Sleep for the remaining time if the loop was faster than the frame duration
-        if elapsed_time < frame_duration:
-            await asyncio.sleep(frame_duration - elapsed_time)
+
+        while gameNotOver:
+            print("new Frame...")
+            start_time = asyncio.get_event_loop().time()  # Get the current time
+            await check_exit_condition()
+            await moveEnemies()
+            await tryMovePlayer()
+            await newFrame()
+            
+            # Calculate the time taken for this loop iteration
+            elapsed_time = asyncio.get_event_loop().time() - start_time
+            frame_duration = 1 / 2  # Target duration for 3 frames per second (0.3333 seconds)
+            
+            # Sleep for the remaining time if the loop was faster than the frame duration
+            if elapsed_time < frame_duration:
+                await asyncio.sleep(frame_duration - elapsed_time)
+
+        # Reset game
+        print("resetting...")
+        playerObj = PlayerObj("player", playerSprite, [9,6])
+        gameObjects.append(playerObj)
+
+        enemy1.position = (17, 11)
+        enemy2.position = (1, 1)
+
+        gameNotOver = True
+
 
 asyncio.run(main())
