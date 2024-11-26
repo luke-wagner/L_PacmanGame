@@ -112,6 +112,46 @@ def drawGameObject(gameObject):
                 #print("Coloring (" + str(coordX) + ", " + str(coordY) + "), led number: " + str(ledNumber) + ", with " + color)
                 currentFrame[coordX][coordY] = color
 
+def getEmptyTiles(sprite):
+    """
+    Convert the sprite's pixelData into a list of valid (x, y) tuples (emptyTiles).
+    Only include positions with '  ' in the resulting list.
+    """
+    emptyTiles = []
+    for x, col in enumerate(sprite.pixelData):
+        for y, value in enumerate(col):
+            if value == '  ':
+                emptyTiles.append((x, y))
+    return emptyTiles
+
+emptyTiles = getEmptyTiles(backgroundSprite)
+
+# Check if a proposed position is valid for a gameObject based on its sprite size
+# Return true if position is valid, else return false
+def checkBounds(gameObject, position):
+    # gameObject.sprite.origin decides where the sprite is centered at. This is a tuple of ints
+    # gameObject.width and gameObject.height properties decide the size of the sprite in pixels (integer value)
+    # emptyTiles is a python list of tuples, that symbolizes the free squares in the game grid. Any x-y value not in emptyTiles
+    # should be assumed to be a wall, where the gameObject cannot go.
+    # Function should return false if any part of the gameObject would be drawn over a wall (or non-empty tile)
+    
+    sprite_origin = gameObject.sprite.origin  # (x_offset, y_offset)
+    sprite_width = gameObject.sprite.width
+    sprite_height = gameObject.sprite.height
+    
+    # Calculate the top-left corner of the sprite based on the position and origin
+    top_left_x = position[0] - sprite_origin[0]
+    top_left_y = position[1] - sprite_origin[1]
+    
+    # Iterate over every pixel of the sprite and check if it's within emptyTiles
+    for x in range(top_left_x, top_left_x + sprite_width):
+        for y in range(top_left_y, top_left_y + sprite_height):
+            if (x, y) not in emptyTiles:
+                return False  # A part of the sprite is over a non-empty tile
+    
+    return True  # All parts of the sprite are within emptyTiles
+
+
 def playerMovedEvent():
     global gameNotOver
 
@@ -127,24 +167,39 @@ def playerMovedEvent():
     newFrame()
 
 async def tryMovePlayer():
-    if keys_held.get(Key.up, False):
+    currentPos = playerObj.position
+
+    if keys_held.get(Key.up, False) and checkBounds(playerObj, (currentPos[0],currentPos[1] - 1)):
         print("Up held")
         playerObj.position[1] -= 1
         playerMovedEvent()
-    elif keys_held.get(Key.down, False):
+    elif keys_held.get(Key.down, False) and checkBounds(playerObj, (currentPos[0],currentPos[1] + 1)):
         print("Down held")
         playerObj.position[1] += 1
         playerMovedEvent()
-    elif keys_held.get(Key.right, False):
+    elif keys_held.get(Key.right, False) and checkBounds(playerObj, (currentPos[0] + 1,currentPos[1])):
         print("Right held")
         playerObj.position[0] += 1
         playerMovedEvent()
-    elif keys_held.get(Key.left, False):
+    elif keys_held.get(Key.left, False) and checkBounds(playerObj, (currentPos[0] - 1,currentPos[1])):
         print("Left held")
         playerObj.position[0] -= 1
         playerMovedEvent()
 
 def tryMoveEnemy(enemy, index, value):
+    currentPos = enemy.position
+    if index == 0:
+        testPos = (currentPos[0] + value, currentPos[1])
+    else:
+        testPos = (currentPos[0], currentPos[1] + value)
+    
+    if checkBounds(enemy, testPos):
+        enemy.position[index] += value
+        return True
+    else:
+        return False
+
+    '''
     if index == 0:
         if enemy.position[index] + value >= 0 and enemy.position[index] + value < GAME_WIDTH:
             enemy.position[index] += value
@@ -157,22 +212,25 @@ def tryMoveEnemy(enemy, index, value):
             return True
         else:
             return False
+    '''
 
 async def moveEnemies():
     global enemies
 
     for enemy in enemies:
-        if random.random() > 0.5:
-            index = 1
-        else:
-            index = 0
-        
         moved = False
+
         while moved == False:
+            if random.random() > 0.5:
+                index = 1
+            else:
+                index = 0
+
             if random.random() > 0.5:
                 moved = tryMoveEnemy(enemy, index, 1)
             else:
                 moved = tryMoveEnemy(enemy, index, -1)
+        
 
 def on_press(key):
     try:
