@@ -128,15 +128,19 @@ def playerMovedEvent():
 
 async def tryMovePlayer():
     if keys_held.get(Key.up, False):
+        print("Up held")
         playerObj.position[1] -= 1
         playerMovedEvent()
     elif keys_held.get(Key.down, False):
+        print("Down held")
         playerObj.position[1] += 1
         playerMovedEvent()
     elif keys_held.get(Key.right, False):
+        print("Right held")
         playerObj.position[0] += 1
         playerMovedEvent()
     elif keys_held.get(Key.left, False):
+        print("Left held")
         playerObj.position[0] -= 1
         playerMovedEvent()
 
@@ -173,14 +177,18 @@ async def moveEnemies():
 def on_press(key):
     try:
         keys_held[key.char] = True
+        #print("Key press")
     except AttributeError:
         keys_held[key] = True
+        #print("Key press")
 
 def on_release(key):
     try:
         keys_held[key.char] = False
+        print("Key released")
     except AttributeError:
         keys_held[key] = False
+        print("Key released")
 
 async def check_exit_condition():
     if keys_held.get('q', False):
@@ -208,7 +216,7 @@ async def main():
         
         # Calculate the time taken for this loop iteration
         elapsed_time = asyncio.get_event_loop().time() - start_time
-        frame_duration = 1 / 3  # Target duration for 3 frames per second (0.3333 seconds)
+        frame_duration = 1 / 2  # Target duration for 3 frames per second (0.3333 seconds)
         
         # Sleep for the remaining time if the loop was faster than the frame duration
         if elapsed_time < frame_duration:
