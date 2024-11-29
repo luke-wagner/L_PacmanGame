@@ -93,4 +93,7 @@ class LightsController:
         # This is the uuid of the device to write to
         characteristic_uuid = CHAR_UUID
 
-        await self.client.write_gatt_char(characteristic_uuid, bytes.fromhex(hexCode), response=False)
+        try:
+            await self.client.write_gatt_char(characteristic_uuid, bytes.fromhex(hexCode), response=False)
+        except:
+            print("Error sending write command. Continuing program execution...")
