@@ -113,20 +113,6 @@ def drawGameObject(gameObject):
                 #print("Coloring (" + str(coordX) + ", " + str(coordY) + "), led number: " + str(ledNumber) + ", with " + color)
                 currentFrame[coordX][coordY] = color
 
-def getEmptyTiles(sprite):
-    """
-    Convert the sprite's pixelData into a list of valid (x, y) tuples (emptyTiles).
-    Only include positions with '  ' in the resulting list.
-    """
-    emptyTiles = []
-    for x, col in enumerate(sprite.pixelData):
-        for y, value in enumerate(col):
-            if value == '  ':
-                emptyTiles.append((x, y))
-    return emptyTiles
-
-emptyTiles = getEmptyTiles(backgroundSprite)
-
 # Check if a proposed position is valid for a gameObject based on its sprite size
 # Return true if position is valid, else return false
 def checkBounds(gameObject, position):
@@ -153,7 +139,33 @@ def checkBounds(gameObject, position):
     return True  # All parts of the sprite are within emptyTiles
 
 
-def playerMovedEvent():
+def getEmptyTiles(sprite):
+    """
+    Convert the sprite's pixelData into a list of valid (x, y) tuples (emptyTiles).
+    Only include positions with '  ' in the resulting list.
+    """
+    emptyTiles = []
+    for x, col in enumerate(sprite.pixelData):
+        for y, value in enumerate(col):
+            if value == '  ':
+                emptyTiles.append((x, y))
+    return emptyTiles
+
+emptyTiles = getEmptyTiles(backgroundSprite)
+
+def getEnemyWalkableTiles():
+    list_to_return = []
+
+    for position in emptyTiles:
+        if checkBounds(enemy1, position):
+            list_to_return.append(position)
+    
+    return list_to_return
+
+enemyWalkableTiles = getEnemyWalkableTiles()
+
+
+def entityMovedEvent():
     global gameNotOver
 
     collisionObj = playerObj.detectCollisions(gameObjects)
@@ -162,7 +174,8 @@ def playerMovedEvent():
         if collisionObj.name == "pellet":
             gameObjects.remove(collisionObj)
         elif collisionObj.name == "enemy":
-            gameObjects.remove(playerObj)
+            if playerObj in gameObjects:
+                gameObjects.remove(playerObj)
             gameNotOver = False
 
     newFrame()
@@ -174,19 +187,19 @@ async def tryMovePlayer():
     if keys_held.get(Key.up, False) and checkBounds(playerObj, (currentPos[0],currentPos[1] - 1)):
         print("Up held")
         playerObj.position[1] -= 1
-        playerMovedEvent()
+        entityMovedEvent()
     elif keys_held.get(Key.down, False) and checkBounds(playerObj, (currentPos[0],currentPos[1] + 1)):
         print("Down held")
         playerObj.position[1] += 1
-        playerMovedEvent()
+        entityMovedEvent()
     elif keys_held.get(Key.right, False) and checkBounds(playerObj, (currentPos[0] + 1,currentPos[1])):
         print("Right held")
         playerObj.position[0] += 1
-        playerMovedEvent()
+        entityMovedEvent()
     elif keys_held.get(Key.left, False) and checkBounds(playerObj, (currentPos[0] - 1,currentPos[1])):
         print("Left held")
         playerObj.position[0] -= 1
-        playerMovedEvent()
+        entityMovedEvent()
 
 def tryMoveEnemy(enemy):
     print("moving enemy...")
@@ -223,8 +236,8 @@ def tryMoveEnemy(enemy):
     currentPos = tuple(enemy.position)  # Ensure it's a tuple
     playerPos = tuple(playerObj.position)  # Ensure it's a tuple
     
-    # Convert emptyTiles to a set of tuples
-    validTiles = {tuple(tile) for tile in emptyTiles}
+    # Convert enemyWalkableTiles to a set of tuples
+    validTiles = {tuple(tile) for tile in enemyWalkableTiles}
     
     # Find the path from the enemy to the player
     path = findPath(currentPos, playerPos, validTiles)
@@ -269,6 +282,8 @@ async def moveEnemies():
                 moved = tryMoveEnemy(enemy)
             else:
                 moved = tryMoveEnemy(enemy)
+    
+    entityMovedEvent()
         
 
 def on_press(key):
@@ -335,6 +350,7 @@ async def main():
         enemy2.position = (1, 1)
 
         gameNotOver = True
+        await asyncio.sleep(2)
 
 
 asyncio.run(main())
