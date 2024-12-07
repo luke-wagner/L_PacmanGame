@@ -1,4 +1,10 @@
-from GameObject import GameObject
+import sys
+import os
+
+# Add the parent directory to the system path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from gameslib.GameObject import GameObject
 
 class PlayerObj(GameObject):
     def __init__(self, _name, _sprite=None, _position=[0,0]):

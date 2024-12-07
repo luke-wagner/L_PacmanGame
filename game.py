@@ -5,10 +5,10 @@ from pynput.keyboard import Key
 import random
 from collections import deque
 
-from GameObject import GameObject
-from PlayerObj import PlayerObj
-from LightsController import LightsController
-from sprites import *
+from gameslib.GameObject import *
+from lightslib.LightsController import LightsController
+from pacman.PlayerObj import PlayerObj
+from pacman.sprites import *
 
 GAME_WIDTH = 20
 GAME_HEIGHT = 14
@@ -18,16 +18,15 @@ drawingFrame = False
 # Dictionary to track which keys are currently pressed
 keys_held = {}
 
-previousFrame = []
-currentFrame = []
+frame = []
 gameObjects = []
 
 for i in range(GAME_WIDTH):
     column = ['  '] * GAME_HEIGHT
-    currentFrame.append(column)
-    previousFrame.append(column.copy()) # must use copy to ensure same column is not used for both matrices
+    frame.append(column)
 
 lightsController = LightsController()
+asyncio.run(lightsController.connect(run_simul_on_fail=True))
 
 backgroundObj = GameObject("background", backgroundSprite)
 gameObjects.append(backgroundObj)
@@ -68,16 +67,15 @@ gameObjects.append(enemy2)
 gameNotOver = True
 
 def clearFrame():
-    global currentFrame
+    global frame
     
     for i in range(GAME_WIDTH):
         for j in range(GAME_HEIGHT):
-            currentFrame[i][j] = '  '
+            frame[i][j] = '  '
 
 async def newFrame():
     global drawingFrame
-    global currentFrame
-    global previousFrame
+    global frame
 
     drawingFrame = True
 
@@ -90,9 +88,7 @@ async def newFrame():
     for object in gameObjects:
         drawGameObject(object)
 
-    await lightsController.drawFramePartial(currentFrame, previousFrame)
-
-    previousFrame = copy.deepcopy(currentFrame)
+    await lightsController.drawFrame(frame)
 
     drawingFrame = False
 
@@ -111,7 +107,7 @@ def drawGameObject(gameObject):
             
             if coordX >= 0 and coordX < GAME_WIDTH and coordY >= 0 and coordY < GAME_HEIGHT:
                 #print("Coloring (" + str(coordX) + ", " + str(coordY) + "), led number: " + str(ledNumber) + ", with " + color)
-                currentFrame[coordX][coordY] = color
+                frame[coordX][coordY] = color
 
 # Check if a proposed position is valid for a gameObject based on its sprite size
 # Return true if position is valid, else return false
