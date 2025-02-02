@@ -1,7 +1,8 @@
-import copy
+#import copy
 import asyncio
-from pynput import keyboard
-from pynput.keyboard import Key
+import time
+#from pynput import keyboard
+#from pynput.keyboard import Key
 import random
 from collections import deque
 
@@ -26,7 +27,7 @@ for i in range(GAME_WIDTH):
     frame.append(column)
 
 lightsController = LightsController()
-asyncio.run(lightsController.connect(run_simul_on_fail=True))
+asyncio.run(lightsController.connect())
 
 backgroundObj = GameObject("background", backgroundSprite)
 gameObjects.append(backgroundObj)
@@ -180,6 +181,9 @@ async def tryMovePlayer():
     print("Moving player...")
     currentPos = playerObj.position
 
+    '''
+    MUST REDO, GETTING INPUT FROM PHYSICAL BUTTONS OR JOYSTICK
+
     if keys_held.get(Key.up, False) and checkBounds(playerObj, (currentPos[0],currentPos[1] - 1)):
         print("Up held")
         playerObj.position[1] -= 1
@@ -196,6 +200,7 @@ async def tryMovePlayer():
         print("Left held")
         playerObj.position[0] -= 1
         entityMovedEvent()
+    '''
 
 def tryMoveEnemy(enemy):
     print("moving enemy...")
@@ -205,12 +210,13 @@ def tryMoveEnemy(enemy):
 
     def findPath(start, goal, validTiles):
         """Find the shortest path from start to goal using BFS."""
-        queue = deque([start])
+        #queue = deque([start])
+        queue = [start]
         came_from = {start: None}  # To reconstruct the path
         directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]  # Right, Left, Down, Up
 
         while queue:
-            current = queue.popleft()
+            current = queue.pop(0)
             if current == goal:
                 break
             
@@ -236,6 +242,7 @@ def tryMoveEnemy(enemy):
     validTiles = {tuple(tile) for tile in enemyWalkableTiles}
     
     # Find the path from the enemy to the player
+    print(str(currentPos) + ' ' + str(playerPos) + ' ' + str(validTiles))
     path = findPath(currentPos, playerPos, validTiles)
     
     # If there's a path, move the enemy one step closer to the player
@@ -308,8 +315,8 @@ async def check_exit_condition():
         quit()
 
 # Start keyboard listener
-listener = keyboard.Listener(on_press=on_press, on_release=on_release)
-listener.start()
+#listener = keyboard.Listener(on_press=on_press, on_release=on_release)
+#listener.start()
 
 async def main():
     global gameNotOver
@@ -323,15 +330,15 @@ async def main():
 
         while gameNotOver:
             print("new Frame...")
-            start_time = asyncio.get_event_loop().time()  # Get the current time
+            start_time = time.ticks_ms()  # Get the current time
             await check_exit_condition()
             await moveEnemies()
             await tryMovePlayer()
             await newFrame()
             
             # Calculate the time taken for this loop iteration
-            elapsed_time = asyncio.get_event_loop().time() - start_time
-            frame_duration = 1 / 2  # Target duration for 3 frames per second (0.3333 seconds)
+            elapsed_time = time.ticks_diff(time.ticks_ms(), start_time) / 1000  # Convert to seconds
+            frame_duration = 1 / 2  # Target duration for 2 frames per second (0.5 seconds)
             
             # Sleep for the remaining time if the loop was faster than the frame duration
             if elapsed_time < frame_duration:
