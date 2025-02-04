@@ -11,6 +11,8 @@ from lightslib.LightsController import LightsController
 from pacman.PlayerObj import PlayerObj
 from pacman.sprites import *
 
+from espinput.input import *
+
 GAME_WIDTH = 20
 GAME_HEIGHT = 14
 
@@ -328,7 +330,7 @@ async def main():
     while True:
         await newFrame()
 
-        while gameNotOver:
+        while gameNotOver and button_pressed(0) == False:
             print("new Frame...")
             start_time = time.ticks_ms()  # Get the current time
             await check_exit_condition()
@@ -343,6 +345,10 @@ async def main():
             # Sleep for the remaining time if the loop was faster than the frame duration
             if elapsed_time < frame_duration:
                 await asyncio.sleep(frame_duration - elapsed_time)
+
+        # If power button is pressed, stop game immediately
+        if button_pressed(0):
+            return
 
         # Reset game
         print("resetting...")
