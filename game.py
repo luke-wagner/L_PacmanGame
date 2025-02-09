@@ -5,6 +5,7 @@ import time
 #from pynput.keyboard import Key
 import random
 from collections import deque
+import sys
 
 from gameslib.GameObject import *
 from lightslib.LightsController import LightsController
@@ -29,7 +30,10 @@ for i in range(GAME_WIDTH):
     frame.append(column)
 
 lightsController = LightsController()
-asyncio.run(lightsController.connect())
+connection_successful = asyncio.run(lightsController.connect())
+if connection_successful == False:
+    sys.exit(1)
+
 
 backgroundObj = GameObject("background", backgroundSprite)
 gameObjects.append(backgroundObj)
@@ -329,7 +333,21 @@ async def main():
     while True:
         await newFrame()
 
-        while gameNotOver and button_pressed(0) == False:
+        while gameNotOver:
+            # Before starting a new frame, check interrupt events
+            # active_events is a list of all interrupt events that are set
+            active_events = [x for x in interrupt_events if x[1].is_set()]
+
+            if len(active_events) > 0:
+                print("Interrupt encountered...")
+
+                for event in active_events:
+                    print("Event identifier: " + event[0])
+                    event[1].clear()
+
+                await lightsController.disconnect()
+                return
+
             print("new Frame...")
             start_time = time.ticks_ms()  # Get the current time
             await check_exit_condition()
@@ -344,10 +362,6 @@ async def main():
             # Sleep for the remaining time if the loop was faster than the frame duration
             if elapsed_time < frame_duration:
                 await asyncio.sleep(frame_duration - elapsed_time)
-
-        # If power button is pressed, stop game immediately
-        if button_pressed(0):
-            return
 
         # Reset game
         print("resetting...")
