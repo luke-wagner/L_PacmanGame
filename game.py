@@ -85,8 +85,9 @@ async def newFrame():
     clearFrame()
 
     # Sort the gameObjects list by zIndex so sprites are drawn in the correct order
-    # Not sure if this will work
-    gameObjects.sort(key=lambda obj: obj.zIndex)
+    # At least for the ESP32 branch, this breaks the code entirely.
+    # This was a nasty bug to find, DONT DO THIS AGAIN
+    # gameObjects.sort(key=lambda obj: obj.zIndex)
 
     for object in gameObjects:
         drawGameObject(object)
