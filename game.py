@@ -184,26 +184,24 @@ async def tryMovePlayer():
     print("Moving player...")
     currentPos = playerObj.position
 
-    '''
-    MUST REDO, GETTING INPUT FROM PHYSICAL BUTTONS OR JOYSTICK
+    # Move player using buttons 2-5. Later, this will be modified to optionally use the joystick
 
-    if keys_held.get(Key.up, False) and checkBounds(playerObj, (currentPos[0],currentPos[1] - 1)):
+    if button_pressed(5) and checkBounds(playerObj, (currentPos[0],currentPos[1] - 1)):
         print("Up held")
         playerObj.position[1] -= 1
         entityMovedEvent()
-    elif keys_held.get(Key.down, False) and checkBounds(playerObj, (currentPos[0],currentPos[1] + 1)):
+    elif button_pressed(2) and checkBounds(playerObj, (currentPos[0],currentPos[1] + 1)):
         print("Down held")
         playerObj.position[1] += 1
         entityMovedEvent()
-    elif keys_held.get(Key.right, False) and checkBounds(playerObj, (currentPos[0] + 1,currentPos[1])):
+    elif button_pressed(4) and checkBounds(playerObj, (currentPos[0] + 1,currentPos[1])):
         print("Right held")
         playerObj.position[0] += 1
         entityMovedEvent()
-    elif keys_held.get(Key.left, False) and checkBounds(playerObj, (currentPos[0] - 1,currentPos[1])):
+    elif button_pressed(3) and checkBounds(playerObj, (currentPos[0] - 1,currentPos[1])):
         print("Left held")
         playerObj.position[0] -= 1
         entityMovedEvent()
-    '''
 
 def tryMoveEnemy(enemy):
     print("moving enemy...")
