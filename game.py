@@ -190,19 +190,19 @@ async def tryMovePlayer():
 
     # Move player using buttons 2-5. Later, this will be modified to optionally use the joystick
 
-    if button_pressed(5) and checkBounds(playerObj, (currentPos[0],currentPos[1] - 1)):
+    if (button_pressed(5) or joystick_up_held()) and checkBounds(playerObj, (currentPos[0],currentPos[1] - 1)):
         print("Up held")
         playerObj.position[1] -= 1
         entityMovedEvent()
-    elif button_pressed(2) and checkBounds(playerObj, (currentPos[0],currentPos[1] + 1)):
+    elif (button_pressed(2) or joystick_down_held()) and checkBounds(playerObj, (currentPos[0],currentPos[1] + 1)):
         print("Down held")
         playerObj.position[1] += 1
         entityMovedEvent()
-    elif button_pressed(4) and checkBounds(playerObj, (currentPos[0] + 1,currentPos[1])):
+    elif (button_pressed(4) or joystick_right_held()) and checkBounds(playerObj, (currentPos[0] + 1,currentPos[1])):
         print("Right held")
         playerObj.position[0] += 1
         entityMovedEvent()
-    elif button_pressed(3) and checkBounds(playerObj, (currentPos[0] - 1,currentPos[1])):
+    elif (button_pressed(3) or joystick_left_held()) and checkBounds(playerObj, (currentPos[0] - 1,currentPos[1])):
         print("Left held")
         playerObj.position[0] -= 1
         entityMovedEvent()
@@ -343,10 +343,14 @@ async def main():
 
                 for event in active_events:
                     print("Event identifier: " + event[0])
-                    event[1].clear()
+
+                    if event[0] == "btn0_event":
+                        await lightsController.drawBlankFrame()
+
+                    event[1].clear() # Clear event
 
                 await lightsController.disconnect()
-                return
+                sys.exit()
 
             print("new Frame...")
             start_time = time.ticks_ms()  # Get the current time
