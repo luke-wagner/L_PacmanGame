@@ -336,6 +336,7 @@ async def main():
         while gameNotOver:
             # Before starting a new frame, check interrupt events
             # active_events is a list of all interrupt events that are set
+            # For now, if an interrupt is encountered, simply disconnect from the lights
             active_events = [x for x in interrupt_events if x[1].is_set()]
 
             if len(active_events) > 0:
@@ -343,14 +344,12 @@ async def main():
 
                 for event in active_events:
                     print("Event identifier: " + event[0])
+                    event[1].clear()
 
-                    if event[0] == "btn0_event":
-                        await lightsController.drawBlankFrame()
-
-                    event[1].clear() # Clear event
-
+                # Disconnect from the lights
                 await lightsController.disconnect()
-                sys.exit()
+
+                return
 
             print("new Frame...")
             start_time = time.ticks_ms()  # Get the current time
