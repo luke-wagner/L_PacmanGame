@@ -13,6 +13,7 @@ from pacman.PlayerObj import PlayerObj
 from pacman.sprites import *
 
 from espinput.input import *
+from espinput.LEDController import LEDController
 
 GAME_WIDTH = 20
 GAME_HEIGHT = 14
@@ -28,8 +29,12 @@ gameObjects = []
 for i in range(GAME_WIDTH):
     column = ['  '] * GAME_HEIGHT
     frame.append(column)
+    
 
+# Configure the Lights and LED controllers
 lightsController = LightsController()
+ledController = LEDController()
+lightsController.attachLEDController(ledController)
 connection_successful = asyncio.run(lightsController.connect())
 if connection_successful == False:
     sys.exit(1)
