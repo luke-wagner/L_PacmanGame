@@ -12,7 +12,7 @@ from lightslib.LightsController import LightsController
 from pacman.PlayerObj import PlayerObj
 from pacman.sprites import *
 
-from espinput.input import *
+from espinput.iodefs import *
 from espinput.LEDController import LEDController
 
 GAME_WIDTH = 20
